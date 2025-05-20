@@ -92,17 +92,18 @@ class MLModel:
 
 
     def preprocessing_pipeline(self, df):
-        folder = 'artifacts/encoders'
-        MLModel.create_new_folder(folder)
+        # Már az mlflow-ba mentünk nem local-ba igy nem kell
+       # folder = 'artifacts/encoders'
+       # MLModel.create_new_folder(folder)
 
-        folder = 'artifacts/preprocessed_data'
-        MLModel.create_new_folder(folder)
+       # folder = 'artifacts/preprocessed_data'
+       # MLModel.create_new_folder(folder)
 
-        folder = 'artifacts/models'
-        MLModel.create_new_folder(folder)
+       # folder = 'artifacts/models'
+       # MLModel.create_new_folder(folder)
 
-        folder = 'artifacts/nan_outlier_handler'
-        MLModel.create_new_folder(folder)
+       # folder = 'artifacts/nan_outlier_handler'
+       # MLModel.create_new_folder(folder)
 
         # Oszlopok törlése
         df.drop(columns=DROP_COLUMNS, inplace=True)
@@ -121,18 +122,18 @@ class MLModel:
         df['Leather interior'] = df['Leather interior'].map({'Yes': 1, 'No': 0})
         df['Doors'] = df['Doors'].str.extract(r'(\d+)').astype(float)
 
-        fill_values_nominal = {col: df[col].mode()[0] for col in NOMINAL_COLUMNS}
-        fill_values_discrete = {col: df[col].median() for col in DISCRETE_COLUMNS}
-        fill_values_continuous = {col: df[col].mean() for col in CONTINOUS_COLUMNS}
+        self.fill_values_nominal = {col: df[col].mode()[0] for col in NOMINAL_COLUMNS}
+        self.fill_values_discrete = {col: df[col].median() for col in DISCRETE_COLUMNS}
+        self.fill_values_continuous = {col: df[col].mean() for col in CONTINOUS_COLUMNS}
 
         for col in NOMINAL_COLUMNS:
-            df[col] = df[col].fillna(fill_values_nominal[col])
+            df[col] = df[col].fillna(self.fill_values_nominal[col])
 
         for col in DISCRETE_COLUMNS:
-            df[col] = df[col].fillna(fill_values_discrete[col])
+            df[col] = df[col].fillna(self.fill_values_discrete[col])
 
         for col in CONTINOUS_COLUMNS:
-            df[col] = df[col].fillna(fill_values_continuous[col])
+            df[col] = df[col].fillna(self.fill_values_continuous[col])
 
         # Outlier kezelés Z-score alapján
         for col in CONTINOUS_COLUMNS:
@@ -142,34 +143,42 @@ class MLModel:
             df.loc[outliers, col] = df[col].mean()
 
         # OneHot Encoding
-        encoder_dict = {}
+        self.onehot_encoders = {}
         for col in NOMINAL_COLUMNS:
-            encoder = OneHotEncoder(sparse_output=False, handle_unknown="ignore")
-            transformed = encoder.fit_transform(df[[col]])
-            df = pd.concat([df, pd.DataFrame(transformed, columns=encoder.get_feature_names_out([col]))], axis=1)
-            encoder_dict[col] = encoder
-
+            encoder = OneHotEncoder(sparse_output=False,
+                                    handle_unknown='ignore')
+            new_data = encoder.fit_transform(df[[col]])
+            new_df = pd.DataFrame(new_data,
+                                  columns=encoder.get_feature_names_out([col]))
+            df = pd.concat([df, new_df], axis=1)
+            self.onehot_encoders[col] = encoder
         df.drop(columns=NOMINAL_COLUMNS, inplace=True)
 
         # Skálázás
-        scaler_dict = {}
+        self.min_max_scaler_dict = {}
         for col in df.columns:
             if col == TARGET:
                 continue
             scaler = MinMaxScaler()
             df[col] = scaler.fit_transform(df[[col]])
-            scaler_dict[col] = scaler
+            self.min_max_scaler_dict[col] = scaler
 
-        MLModel.save_model(self.fill_values_nominal,
-                           'artifacts/nan_outlier_handler/fill_values_nominal.pkl')
-        MLModel.save_model(self.fill_values_discrete,
-                           'artifacts/nan_outlier_handler/fill_values_discrete.pkl')
-        MLModel.save_model(self.fill_values_continuous,
-                           'artifacts/nan_outlier_handler/fill_values_continuous.pkl')
-        MLModel.save_model(self.min_max_scaler_dict,
-                           'artifacts/encoders/min_max_scaler_dict.pkl')
-        MLModel.save_model(self.onehot_encoders,
-                           'artifacts/encoders/onehot_encoders_dict.pkl')
+            # Log artifacts to MLflow
+            mlflow.log_dict(self.fill_values_nominal,
+                            "fill_values_nominal.json")
+            mlflow.log_dict(self.fill_values_discrete,
+                            "fill_values_discrete.json")
+            mlflow.log_dict(self.fill_values_continuous,
+                            "fill_values_continuous.json")
+
+            # Serialize and log scalers and encoders
+            with open("min_max_scaler_dict.pkl", "wb") as f:
+                pickle.dump(self.min_max_scaler_dict, f)
+            mlflow.log_artifact("min_max_scaler_dict.pkl")
+
+            with open("onehot_encoders.pkl", "wb") as f:
+                pickle.dump(self.onehot_encoders, f)
+            mlflow.log_artifact("onehot_encoders.pkl")
 
         return df
 
@@ -201,7 +210,7 @@ class MLModel:
 
     def preprocessing_pipeline_inference(self, sample_data):
         sample_data = [np.nan if item == '?' else item for item in sample_data]
-        sample_data = pd.DataFrame([sample_data])
+        sample_data = pd.DataFrame(sample_data)
 
         sample_data.drop(columns=DROP_COLUMNS, inplace=True)
 
@@ -218,16 +227,16 @@ class MLModel:
 
         for col, encoder in self.onehot_encoders.items():
             new_data = encoder.transform(sample_data[col].to_numpy().reshape(-1, 1))
-            new_df = pd.DataFrame(new_data, columns=encoder.get_feature_names([col]))
+            new_df = pd.DataFrame(new_data, columns=encoder.get_feature_names_out([col]))
             sample_data = pd.concat([sample_data, new_df], axis=1).drop(columns=[col])
+
 
             # Skálázás
         for col, scaler in self.min_max_scaler_dict.items():
             if col in sample_data.columns:
                 sample_data[col] = scaler.transform(sample_data[[col]])
 
-        if TARGET in sample_data.columns:
-            sample_data = sample_data.drop(columns=TARGET)
+
         return sample_data
 
     def predict(self, inference_row):
@@ -236,7 +245,7 @@ class MLModel:
 
         processed_data = self.preprocessing_pipeline_inference(inference_row)
         prediction = self.model.predict(processed_data)
-        return int(prediction)
+        return prediction
 
     @staticmethod
     def save_model(model, file_path):
