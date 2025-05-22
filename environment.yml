@@ -1,4 +1,4 @@
-name: petrik_adam_mlops_pipelines
+name: mlflow_env
 channels:
   - conda-forge
   - defaults
@@ -128,4 +128,4 @@ dependencies:
       - wrapt==1.16.0
       - xgboost==2.0.3
       - zipp==3.20.2
-prefix: /Users/Petrik/anaconda3/envs/cubix_mlops_pipelines
+prefix: /Users/Petrik/anaconda3/envs/mlflow_env

@@ -1,38 +1,24 @@
-# Base Docker image: Anaconda
-FROM continuumio/anaconda3
+FROM python:3.10-slim
 
 # Set working directory within the container
 WORKDIR /app
 
 # Copy environment.yml, app.py, and additional files
-COPY environment.yml /app
 COPY app.py /app
 COPY constants.py /app
 COPY MLModel.py /app
 COPY mlruns /app/mlruns
+COPY requirements.txt /app
+COPY start.sh /app/start.sh
 
-# Install environment based on environment.yml
-RUN conda env create -f environment.yml
-
-# Activate the environment and install additional pip dependencies (flask-restx specifically)
-RUN /bin/bash -c "source activate cubix_mlops_pipelines && pip install flask-restx"
-
-# Set environment variables
-ENV MLFLOW_TRACKING_URI="file:/app/mlruns"
-ENV PATH="/opt/conda/envs/cubix_mlops_pipelines/bin:$PATH"
 
 # Set permissions for the mlruns folder
-RUN chmod -R 777 /app/mlruns
+RUN pip install --upgrade pip
+RUN pip install -r requirements.txt
+RUN chmod +x /app/start.sh
 
-# Start MLflow server and app.py in the cubix_mlops_pipelines environment
-CMD ["/bin/bash", "-c", "source activate cubix_mlops_pipelines && mlflow server --host 0.0.0.0 --port 5102 --backend-store-uri file:/app/mlruns --default-artifact-root /app/mlruns & python app.py"]
+ENV MLFLOW_TRACKING_URI="file:/app/mlruns"
 
-#docker build -t pipelines_with_mlflow_docker .    
 
-#conda env export --name környezet_neve > environment.yml
+CMD ["/app/start.sh"]
 
-#docker build -t mlflow_docker_image .
-
-#docker run --name self_container_name -p 5102:5102 -p 8080:8080 mlflow_docker_image
-
-#docker exec -it my_cont2 /bin/bash

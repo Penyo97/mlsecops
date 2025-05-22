@@ -8,7 +8,7 @@ from pathlib import Path
 from sklearn.model_selection import train_test_split
 from xgboost import XGBRegressor
 from sklearn.metrics import mean_absolute_error, r2_score
-from constans import NOMINAL_COLUMNS, DISCRETE_COLUMNS, CONTINOUS_COLUMNS, DROP_COLUMNS, TARGET
+from constants import NOMINAL_COLUMNS, DISCRETE_COLUMNS, CONTINOUS_COLUMNS, DROP_COLUMNS, TARGET
 import mlflow
 from mlflow.artifacts import download_artifacts
 

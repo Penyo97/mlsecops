@@ -14,7 +14,7 @@ client = MlflowClient()
 model_name = "Car_Price_Model"
 
 # Path to the CSV file
-csv_file_path = "data/train_pipeline/car_price_prediction.csv"
+csv_file_path = "../data/train_pipeline/car_price_prediction.csv"
 
 
 def train_model(**kwargs):
@@ -28,12 +28,12 @@ def train_model(**kwargs):
         raise Exception(f"Training failed: {data.get('error', 'Unknown error')}")
 
     data = response.json()
-    new_accuracy = data["test_accuracy"]
+    new_accuracy = data["mae"]
 
     latest_version_info = client.get_latest_versions(model_name, stages=["Staging"])
     if latest_version_info:
         latest_version = latest_version_info[0]
-        staging_accuracy = client.get_metric_history(latest_version.run_id, "test_accuracy")[-1].value
+        staging_accuracy = client.get_metric_history(latest_version.run_id, "mae")[-1].value
 
         if new_accuracy >= staging_accuracy:
             client.transition_model_version_stage(

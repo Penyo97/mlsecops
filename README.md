@@ -23,3 +23,15 @@
     }
   ]
 }
+
+## Docker image build
+docker build -t flask-mlflow-app . 
+docker run -p 8080:8080 -p 5102:5102 flask-mlflow-app 
+
+## mlflow start
+mlflow ui --port 5102
+
+## Conda set enviroment
+conda activate mlflow_env
+
+

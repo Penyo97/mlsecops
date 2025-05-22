@@ -1,0 +1,6 @@
+flask
+flask-restx
+pandas
+scikit-learn
+xgboost
+mlflow
