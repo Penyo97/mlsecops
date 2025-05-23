@@ -1,5 +1,8 @@
 # mlsecops
+## Petrik Ádám GVERV7
 
+
+## Példa infenerce sor
 {
   "inference_row": [
     {
@@ -24,14 +27,12 @@
   ]
 }
 
-## Docker image build
-docker build -t flask-mlflow-app . 
-docker run -p 8080:8080 -p 5102:5102 flask-mlflow-app 
-
-## mlflow start
-mlflow ui --port 5102
-
+## Egy új conda környezett lett létrehozva az mlflow telepitése miatt, mert a base enviroment túl sok package-et tartalmazott
 ## Conda set enviroment
 conda activate mlflow_env
+
+## Amint megvolt az anaconda enviroment change utána tudjuk futattni magát az alkalmazást 
+
+docker compose up
 
 
