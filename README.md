@@ -31,8 +31,12 @@
 ## Conda set enviroment
 conda activate mlflow_env
 
-## Amint megvolt az anaconda enviroment change utána tudjuk futattni magát az alkalmazást 
+## Docker image build
+docker build -t flask_mlflow_app .
 
+## Amint megvolt az anaconda enviroment change utána tudjuk futattni magát az alkalmazást 
 docker compose up
 
+## Stremlit start
+python -m streamlit run monitor_with_streamlit_train_data.py
 
